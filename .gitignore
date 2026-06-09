@@ -1,1 +1,26 @@
-.csv
+# Data files — never commit financial data
+rawdata/
+expenditures.csv
+*.csv
+*.CSV
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Env files
+.env
+.env.*
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
