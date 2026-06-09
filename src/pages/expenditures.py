@@ -32,6 +32,8 @@ if df.empty:
     st.stop()
 
 # --- Date filter (persistent across tabs via session_state) ---
+# Widget-bound keys are cleared by Streamlit on page navigation, so we manage
+# persistence manually: widgets use `value=`, return values update session state.
 all_dates = pd.to_datetime(df["date"], errors="coerce").dt.date.dropna()
 st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
 st.session_state.setdefault("date_end",   all_dates.max() if len(all_dates) else datetime.date.today())
@@ -39,9 +41,11 @@ st.session_state.setdefault("date_end",   all_dates.max() if len(all_dates) else
 st.markdown("**Date Filter**")
 dcol1, dcol2 = st.columns(2)
 with dcol1:
-    st.date_input("From", key="date_start")
+    date_start = st.date_input("From", value=st.session_state["date_start"])
 with dcol2:
-    st.date_input("To", key="date_end")
+    date_end = st.date_input("To", value=st.session_state["date_end"])
+st.session_state["date_start"] = date_start
+st.session_state["date_end"] = date_end
 
 # --- Category / necessity filters (persistent across tabs via session_state) ---
 def unique_vals(series):
@@ -52,9 +56,11 @@ st.session_state.setdefault("filter_necessity", [])
 
 col1, col2 = st.columns(2)
 with col1:
-    st.multiselect("Category", options=unique_vals(df["category"]), key="filter_categories")
+    filter_categories = st.multiselect("Category", options=unique_vals(df["category"]), default=st.session_state["filter_categories"])
 with col2:
-    st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), key="filter_necessity")
+    filter_necessity = st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), default=st.session_state["filter_necessity"])
+st.session_state["filter_categories"] = filter_categories
+st.session_state["filter_necessity"] = filter_necessity
 
 df_dates = pd.to_datetime(df["date"], errors="coerce").dt.date
 mask = pd.Series(True, index=df.index)

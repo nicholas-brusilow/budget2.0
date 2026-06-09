@@ -26,12 +26,32 @@ if df.empty:
     st.info("No visualization data found. Restart the app to generate it.")
     st.stop()
 
-# Apply persistent filters from session state
-today = datetime.date.today()
-date_start = st.session_state.get("date_start", df["date"].dt.date.min())
-date_end   = st.session_state.get("date_end",   df["date"].dt.date.max())
-filter_cats = st.session_state.get("filter_categories", [])
-filter_nec  = st.session_state.get("filter_necessity", [])
+# --- Filters (same persistence pattern as Expenditures page) ---
+all_dates = df["date"].dt.date.dropna()
+st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
+st.session_state.setdefault("date_end",   all_dates.max() if len(all_dates) else datetime.date.today())
+st.session_state.setdefault("filter_categories", [])
+st.session_state.setdefault("filter_necessity", [])
+
+def unique_vals(series):
+    return sorted(v for v in series.dropna().unique() if str(v).strip())
+
+st.markdown("**Date Filter**")
+dcol1, dcol2 = st.columns(2)
+with dcol1:
+    date_start = st.date_input("From", value=st.session_state["date_start"])
+with dcol2:
+    date_end = st.date_input("To", value=st.session_state["date_end"])
+st.session_state["date_start"] = date_start
+st.session_state["date_end"] = date_end
+
+col1, col2 = st.columns(2)
+with col1:
+    filter_cats = st.multiselect("Category", options=unique_vals(df["category"]), default=st.session_state["filter_categories"])
+with col2:
+    filter_nec = st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), default=st.session_state["filter_necessity"])
+st.session_state["filter_categories"] = filter_cats
+st.session_state["filter_necessity"] = filter_nec
 
 mask = pd.Series(True, index=df.index)
 mask &= df["date"].dt.date >= date_start
