@@ -31,8 +31,9 @@ def load_alliant_cc(path: str) -> pd.DataFrame:
     df.columns = df.columns.str.strip()
     out = pd.DataFrame()
     out["date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y").dt.strftime("%Y-%m-%d")
-    # _parse_alliant_amount returns positive for payments, negative for purchases — correct as-is.
-    out["amount"] = df["Amount"].apply(_parse_alliant_amount)
+    # Alliant CC: plain $16.82 = purchase (money out), ($16.82) = payment (money in).
+    # _parse_alliant_amount returns positive for plain amounts, so negate.
+    out["amount"] = df["Amount"].apply(_parse_alliant_amount) * -1
     out["description"] = df["Description"].str.strip().apply(html.unescape)
     out["account"] = "alliant_cc"
     return out
@@ -63,7 +64,9 @@ def load_chase_cc(path: str) -> pd.DataFrame:
 
 
 def load_chase_checking(path: str) -> pd.DataFrame:
-    df = pd.read_csv(path)
+    # index_col=False prevents pandas from treating column 0 as index when
+    # Chase exports have a trailing comma on every data row (one extra field vs header).
+    df = pd.read_csv(path, index_col=False)
     df.columns = df.columns.str.strip()
     out = pd.DataFrame()
     out["date"] = pd.to_datetime(df["Posting Date"], format="%m/%d/%Y").dt.strftime("%Y-%m-%d")

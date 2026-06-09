@@ -1,5 +1,6 @@
 import os
 import sys
+import datetime
 import pandas as pd
 import streamlit as st
 
@@ -30,25 +31,42 @@ if df.empty:
     st.info("No expenditure data found. Add raw data files and restart.")
     st.stop()
 
-# --- Filters ---
+# --- Date filter (persistent across tabs via session_state) ---
+all_dates = pd.to_datetime(df["date"], errors="coerce").dt.date.dropna()
+st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
+st.session_state.setdefault("date_end",   all_dates.max() if len(all_dates) else datetime.date.today())
+
+st.markdown("**Date Filter**")
+dcol1, dcol2 = st.columns(2)
+with dcol1:
+    st.date_input("From", key="date_start")
+with dcol2:
+    st.date_input("To", key="date_end")
+
+# --- Category / necessity filters (persistent across tabs via session_state) ---
 def unique_vals(series):
     return sorted(v for v in series.dropna().unique() if str(v).strip())
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    sel_cats = st.multiselect("Category", options=unique_vals(df["category"]))
-with col2:
-    sel_subs = st.multiselect("Subcategory", options=unique_vals(df["subcategory"]))
-with col3:
-    sel_nec = st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]))
+st.session_state.setdefault("filter_categories", [])
+st.session_state.setdefault("filter_necessity", [])
 
+col1, col2 = st.columns(2)
+with col1:
+    st.multiselect("Category", options=unique_vals(df["category"]), key="filter_categories")
+with col2:
+    st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), key="filter_necessity")
+
+df_dates = pd.to_datetime(df["date"], errors="coerce").dt.date
 mask = pd.Series(True, index=df.index)
-if sel_cats:
-    mask &= df["category"].isin(sel_cats)
-if sel_subs:
-    mask &= df["subcategory"].isin(sel_subs)
-if sel_nec:
-    mask &= df["necessity_level"].isin(sel_nec)
+mask &= df_dates >= st.session_state["date_start"]
+mask &= df_dates <= st.session_state["date_end"]
+if st.session_state["filter_categories"]:
+    mask &= df["category"].isin(st.session_state["filter_categories"])
+if st.session_state["filter_necessity"]:
+    mask &= df["necessity_level"].isin(st.session_state["filter_necessity"])
+
+if st.checkbox("Hide Ignored Transactions"):
+    mask &= ~df["ignore"]
 
 filtered = df[mask].copy()
 
