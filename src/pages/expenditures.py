@@ -1,9 +1,15 @@
 import os
+import sys
 import pandas as pd
 import streamlit as st
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUTPUT = os.path.join(ROOT, "expenditures.csv")
+
+sys.path.insert(0, os.path.join(ROOT, "src"))
+from categoricals import EXPENDITURE_CATEGORIES, ALL_SUBCATEGORIES, NECESSITY
+
+EDITABLE_COLS = ["category", "subcategory", "necessity_level", "ignore"]
 
 
 def load():
@@ -11,6 +17,9 @@ def load():
         return pd.DataFrame()
     df = pd.read_csv(OUTPUT)
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
+    df["ignore"] = df["ignore"].astype(str).str.lower() == "true"
+    for col in ["category", "subcategory", "necessity_level"]:
+        df[col] = df[col].fillna("")
     return df
 
 
@@ -42,23 +51,39 @@ if sel_nec:
     mask &= df["necessity_level"].isin(sel_nec)
 
 filtered = df[mask].copy()
-st.caption(f"Showing {len(filtered)} of {len(df)} transactions")
 
-# --- Read-only table ---
-st.dataframe(
+col_caption, col_btn = st.columns([8, 1])
+with col_caption:
+    st.caption(f"Showing {len(filtered)} of {len(df)} transactions")
+with col_btn:
+    save_clicked = st.button("Save Changes", type="primary", use_container_width=True)
+
+# --- Table ---
+disabled_cols = [c for c in filtered.columns if c not in EDITABLE_COLS]
+
+edited = st.data_editor(
     filtered,
     column_config={
         "date":            st.column_config.TextColumn("Date"),
         "amount":          st.column_config.NumberColumn("Amount", format="%.2f"),
         "description":     st.column_config.TextColumn("Description"),
         "account":         st.column_config.TextColumn("Account"),
-        "category":        st.column_config.TextColumn("Category"),
-        "subcategory":     st.column_config.TextColumn("Subcategory"),
-        "necessity_level": st.column_config.TextColumn("Necessity Level"),
+        "category":        st.column_config.SelectboxColumn("Category", options=EXPENDITURE_CATEGORIES, required=False),
+        "subcategory":     st.column_config.SelectboxColumn("Subcategory", options=ALL_SUBCATEGORIES, required=False),
+        "necessity_level": st.column_config.SelectboxColumn("Necessity Level", options=NECESSITY, required=False),
         "timescale":       st.column_config.TextColumn("Timescale"),
         "timescale_end":   st.column_config.TextColumn("Timescale End"),
         "ignore":          st.column_config.CheckboxColumn("Ignore"),
     },
+    disabled=disabled_cols,
     use_container_width=True,
     hide_index=True,
+    num_rows="fixed",
+    key="expenditures_editor",
 )
+
+if save_clicked:
+    df.update(edited[EDITABLE_COLS])
+    df.to_csv(OUTPUT, index=False)
+    del st.session_state["expenditures_editor"]
+    st.rerun()
