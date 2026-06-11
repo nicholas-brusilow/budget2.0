@@ -1,7 +1,7 @@
 import os
 import datetime
 import pandas as pd
-import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -27,12 +27,11 @@ def cumulative_line(spending, group_col, title, blank_label):
     full_range = pd.date_range(pivot.index.min(), pivot.index.max(), freq="D")
     pivot = pivot.reindex(full_range, fill_value=0)
     cumulative = pivot.cumsum().reset_index().rename(columns={"index": "date"})
-    melted = cumulative.melt(id_vars="date", var_name=group_col, value_name="Cumulative Spending")
-    fig = px.line(
-        melted, x="date", y="Cumulative Spending", color=group_col,
-        title=title, height=500,
-    )
-    fig.update_layout(xaxis_title="Date", yaxis_title="Cumulative Spending ($)")
+
+    fig = go.Figure()
+    for group in cumulative.columns[1:]:
+        fig.add_trace(go.Scatter(x=cumulative["date"], y=cumulative[group], mode="lines", name=str(group)))
+    fig.update_layout(title=title, height=500, xaxis_title="Date", yaxis_title="Cumulative Spending ($)")
     return fig
 
 

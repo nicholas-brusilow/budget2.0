@@ -74,12 +74,12 @@ spending["necessity_level"] = spending["necessity_level"].replace("", "Unassigne
 
 cat_data = spending.groupby("category")["amount"].sum().reset_index()
 fig = px.pie(cat_data, values="amount", names="category", title="Spending by Category", height=700)
-fig.update_traces(textposition="inside", textinfo="percent+label")
+fig.update_traces(textposition="inside", texttemplate="$%{value:,.2f}<br>%{percent:.1%}<br>%{label}")
 fig.update_layout(showlegend=False)
 st.plotly_chart(fig, use_container_width=True)
 
 nec_data = spending.groupby("necessity_level")["amount"].sum().reset_index()
 fig = px.pie(nec_data, values="amount", names="necessity_level", title="Spending by Necessity Level", height=700)
-fig.update_traces(textposition="inside", textinfo="percent+label")
+fig.update_traces(textposition="inside", texttemplate="$%{value:,.2f}<br>%{percent:.1%}<br>%{label}")
 fig.update_layout(showlegend=False)
 st.plotly_chart(fig, use_container_width=True)
