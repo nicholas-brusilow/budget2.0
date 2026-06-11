@@ -10,7 +10,7 @@ OUTPUT = os.path.join(ROOT, "expenditures.csv")
 sys.path.insert(0, os.path.join(ROOT, "src"))
 from categoricals import EXPENDITURE_CATEGORIES, ALL_SUBCATEGORIES, NECESSITY
 
-EDITABLE_COLS = ["category", "subcategory", "necessity_level", "ignore"]
+EDITABLE_COLS = ["category", "subcategory", "necessity_level", "timescale", "timescale_end", "ignore"]
 
 
 def load():
@@ -21,6 +21,8 @@ def load():
     df["ignore"] = df["ignore"].astype(str).str.lower() == "true"
     for col in ["category", "subcategory", "necessity_level"]:
         df[col] = df[col].fillna("")
+    for col in ["timescale", "timescale_end"]:
+        df[col] = pd.to_datetime(df[col], errors="coerce").dt.date
     return df
 
 
@@ -71,7 +73,7 @@ if st.session_state["filter_categories"]:
 if st.session_state["filter_necessity"]:
     mask &= df["necessity_level"].isin(st.session_state["filter_necessity"])
 
-if st.checkbox("Hide Ignored Transactions"):
+if st.checkbox("Hide Ignored Transactions", value=True):
     mask &= ~df["ignore"]
 
 filtered = df[mask].copy()
@@ -83,6 +85,16 @@ with col_btn:
     save_clicked = st.button("Save Changes", type="primary", use_container_width=True)
 
 # --- Table ---
+st.markdown("""
+<style>
+[data-testid="stDataEditor"] {
+    filter: invert(1) hue-rotate(180deg);
+    border-radius: 6px;
+    overflow: hidden;
+}
+</style>
+""", unsafe_allow_html=True)
+
 disabled_cols = [c for c in filtered.columns if c not in EDITABLE_COLS]
 
 edited = st.data_editor(
@@ -95,8 +107,8 @@ edited = st.data_editor(
         "category":        st.column_config.SelectboxColumn("Category", options=EXPENDITURE_CATEGORIES, required=False),
         "subcategory":     st.column_config.SelectboxColumn("Subcategory", options=ALL_SUBCATEGORIES, required=False),
         "necessity_level": st.column_config.SelectboxColumn("Necessity Level", options=NECESSITY, required=False),
-        "timescale":       st.column_config.TextColumn("Timescale"),
-        "timescale_end":   st.column_config.TextColumn("Timescale End"),
+        "timescale":       st.column_config.DateColumn("Timescale", format="YYYY-MM-DD"),
+        "timescale_end":   st.column_config.DateColumn("Timescale End", format="YYYY-MM-DD"),
         "ignore":          st.column_config.CheckboxColumn("Ignore"),
     },
     disabled=disabled_cols,
@@ -108,6 +120,8 @@ edited = st.data_editor(
 
 if save_clicked:
     df.update(edited[EDITABLE_COLS])
+    for col in ["timescale", "timescale_end"]:
+        df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d")
     df.to_csv(OUTPUT, index=False)
     del st.session_state["expenditures_editor"]
     st.rerun()
