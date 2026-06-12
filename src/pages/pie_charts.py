@@ -61,6 +61,9 @@ if filter_cats:
 if filter_nec:
     mask &= df["necessity_level"].isin(filter_nec)
 
+SCALE_OPTIONS = ["Total", "Per Day", "Per Week", "Per Month"]
+scale = st.selectbox("Time Scale", options=SCALE_OPTIONS)
+
 # Only spending (money out = negative); display as positive values
 spending = df[mask & (df["amount"] < 0)].copy()
 spending["amount"] = spending["amount"].abs()
@@ -69,20 +72,36 @@ if spending.empty:
     st.info("No spending data for the selected filters.")
     st.stop()
 
-spending["category"]      = spending["category"].replace("", "Uncategorized")
+spending["category"]        = spending["category"].replace("", "Uncategorized")
 spending["necessity_level"] = spending["necessity_level"].replace("", "Unassigned")
 
+num_days = (date_end - date_start).days + 1
+if scale == "Per Day":
+    divisor = num_days
+    scale_label = "Per-Day Spending"
+elif scale == "Per Week":
+    divisor = num_days / 7
+    scale_label = "Per-Week Spending"
+elif scale == "Per Month":
+    divisor = num_days / 30.4375
+    scale_label = "Per-Month Spending"
+else:
+    divisor = 1
+    scale_label = "Total Spending"
+
+spending["amount"] = spending["amount"] / divisor
+
 total_spent = spending["amount"].sum()
-st.markdown(f"<p style='font-size:1.4rem;'>Total Money Spent: <strong>${total_spent:,.2f}</strong></p>", unsafe_allow_html=True)
+st.markdown(f"<p style='font-size:1.4rem;'>{scale_label}: <strong>${total_spent:,.2f}</strong></p>", unsafe_allow_html=True)
 
 cat_data = spending.groupby("category")["amount"].sum().reset_index()
-fig = px.pie(cat_data, values="amount", names="category", title="Spending by Category", height=700)
+fig = px.pie(cat_data, values="amount", names="category", title=f"{scale_label} by Category", height=700)
 fig.update_traces(textposition="inside", texttemplate="$%{value:,.2f}<br>%{percent:.1%}<br>%{label}")
 fig.update_layout(showlegend=False)
 st.plotly_chart(fig, use_container_width=True)
 
 nec_data = spending.groupby("necessity_level")["amount"].sum().reset_index()
-fig = px.pie(nec_data, values="amount", names="necessity_level", title="Spending by Necessity Level", height=700)
+fig = px.pie(nec_data, values="amount", names="necessity_level", title=f"{scale_label} by Necessity Level", height=700)
 fig.update_traces(textposition="inside", texttemplate="$%{value:,.2f}<br>%{percent:.1%}<br>%{label}")
 fig.update_layout(showlegend=False)
 st.plotly_chart(fig, use_container_width=True)
