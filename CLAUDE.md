@@ -93,10 +93,11 @@ These are set on the Expenditures page and read by all other pages — never har
 ### Expenditures page
 
 Editable table of `expenditures.csv`. Filters (all persistent via session state):
-- Date range (From / To) — initialised to the full span of available data on first load
+- Date range (From / To) — `date_start` defaults to earliest date in data; `date_end` defaults to today's date
 - Category multiselect
 - Necessity Level multiselect
-- "Hide Ignored Transactions" checkbox
+- "Hide Ignored Transactions" checkbox (default on)
+- "Show Only Uncategorized" checkbox — shows only non-ignored transactions missing a `category` or `necessity_level`
 
 Editable columns: `category` (SelectboxColumn), `subcategory` (SelectboxColumn), `necessity_level` (SelectboxColumn), `ignore` (CheckboxColumn). All other columns are read-only. Changes are saved explicitly via the "Save Changes" button.
 
@@ -107,5 +108,11 @@ Manual entry form for `Cash` and `Crypto` transactions. Fields: date, amount, ac
 ### Pie Charts page
 
 Two full-width stacked pie charts sourced from `visual_expenditures.csv`, both respecting all persistent filters. Only spending (negative amounts) is shown, converted to positive for display. Blank category/necessity_level shown as "Uncategorized"/"Unassigned".
+
+Controls above the charts (in order):
+1. **Time Scale dropdown** — `Total`, `Per Day`, `Per Week`, `Per Month`. Divides all amounts by the number of days/weeks/months in the active date range. Per-Month uses 30.4375 days as the average. Updates chart titles and the total label accordingly.
+2. **Total spending display** — large-font label showing the scaled total (e.g. "Per-Day Spending: $X.XX").
+
+Charts:
 - **Spending by Category**
 - **Spending by Necessity Level**
