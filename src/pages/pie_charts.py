@@ -47,19 +47,17 @@ st.session_state["date_end"] = date_end
 
 col1, col2 = st.columns(2)
 with col1:
-    filter_cats = st.multiselect("Category", options=unique_vals(df["category"]), default=st.session_state["filter_categories"])
+    st.multiselect("Category", options=unique_vals(df["category"]), key="filter_categories")
 with col2:
-    filter_nec = st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), default=st.session_state["filter_necessity"])
-st.session_state["filter_categories"] = filter_cats
-st.session_state["filter_necessity"] = filter_nec
+    st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), key="filter_necessity")
 
 mask = pd.Series(True, index=df.index)
 mask &= df["date"].dt.date >= date_start
 mask &= df["date"].dt.date <= date_end
-if filter_cats:
-    mask &= df["category"].isin(filter_cats)
-if filter_nec:
-    mask &= df["necessity_level"].isin(filter_nec)
+if st.session_state["filter_categories"]:
+    mask &= df["category"].isin(st.session_state["filter_categories"])
+if st.session_state["filter_necessity"]:
+    mask &= df["necessity_level"].isin(st.session_state["filter_necessity"])
 
 SCALE_OPTIONS = ["Total", "Per Day", "Per Week", "Per Month"]
 scale = st.selectbox("Time Scale", options=SCALE_OPTIONS)

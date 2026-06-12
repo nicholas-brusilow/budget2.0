@@ -58,11 +58,9 @@ st.session_state.setdefault("filter_necessity", [])
 
 col1, col2 = st.columns(2)
 with col1:
-    filter_categories = st.multiselect("Category", options=unique_vals(df["category"]), default=st.session_state["filter_categories"])
+    st.multiselect("Category", options=unique_vals(df["category"]), key="filter_categories")
 with col2:
-    filter_necessity = st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), default=st.session_state["filter_necessity"])
-st.session_state["filter_categories"] = filter_categories
-st.session_state["filter_necessity"] = filter_necessity
+    st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), key="filter_necessity")
 
 df_dates = pd.to_datetime(df["date"], errors="coerce").dt.date
 mask = pd.Series(True, index=df.index)
