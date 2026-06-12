@@ -29,7 +29,7 @@ if df.empty:
 # --- Filters (same persistence pattern as Expenditures page) ---
 all_dates = df["date"].dt.date.dropna()
 st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
-st.session_state.setdefault("date_end",   all_dates.max() if len(all_dates) else datetime.date.today())
+st.session_state.setdefault("date_end",   datetime.date.today())
 st.session_state.setdefault("filter_categories", [])
 st.session_state.setdefault("filter_necessity", [])
 

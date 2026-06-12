@@ -38,7 +38,7 @@ if df.empty:
 # persistence manually: widgets use `value=`, return values update session state.
 all_dates = pd.to_datetime(df["date"], errors="coerce").dt.date.dropna()
 st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
-st.session_state.setdefault("date_end",   all_dates.max() if len(all_dates) else datetime.date.today())
+st.session_state.setdefault("date_end",   datetime.date.today())
 
 st.markdown("**Date Filter**")
 dcol1, dcol2 = st.columns(2)
