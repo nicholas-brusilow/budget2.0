@@ -87,15 +87,24 @@ These are set on the Expenditures page and read by all other pages — never har
 |---|---|---|
 | `date_start` | `datetime.date` | Start of the active date filter |
 | `date_end` | `datetime.date` | End of the active date filter |
-| `filter_categories` | `list[str]` | Selected category filter values |
-| `filter_necessity` | `list[str]` | Selected necessity level filter values |
+| `filter_categories` | `list[str]` | Selected category filter values (persistent) |
+| `filter_necessity` | `list[str]` | Selected necessity level filter values (persistent) |
+
+#### Filter persistence pattern
+
+Streamlit clears widget-bound keys on page navigation. Date inputs use `value=` + manual assignment (no widget key) so they naturally survive navigation. Category/necessity multiselects use a two-key pattern to get both no-double-click-bug and cross-page persistence:
+
+- `_w_filter_categories` / `_w_filter_necessity` — widget keys (use `key=` on the multiselect); cleared by Streamlit on navigation
+- `filter_categories` / `filter_necessity` — persistent keys (not widget-bound); survive navigation
+
+On each page, before rendering the multiselect: if the widget key is absent (was cleared), restore it from the persistent key. After rendering: copy the widget key back to the persistent key. All mask logic and conditional rendering reads from the persistent keys.
 
 ### Expenditures page
 
 Editable table of `expenditures.csv`. Filters (all persistent via session state):
 - Date range (From / To) — `date_start` defaults to earliest date in data; `date_end` defaults to today's date
-- Category multiselect
-- Necessity Level multiselect
+- Category multiselect (persistent across tabs)
+- Necessity Level multiselect (persistent across tabs)
 - "Hide Ignored Transactions" checkbox (default on)
 - "Show Only Uncategorized" checkbox — shows only non-ignored transactions missing a `category` or `necessity_level`
 
@@ -107,12 +116,26 @@ Manual entry form for `Cash` and `Crypto` transactions. Fields: date, amount, ac
 
 ### Pie Charts page
 
-Two full-width stacked pie charts sourced from `visual_expenditures.csv`, both respecting all persistent filters. Only spending (negative amounts) is shown, converted to positive for display. Blank category/necessity_level shown as "Uncategorized"/"Unassigned".
+Pie charts sourced from `visual_expenditures.csv`, respecting all persistent filters. Only spending (negative amounts) is shown, converted to positive for display. Blank category/necessity_level shown as "Uncategorized"/"Unassigned".
 
 Controls above the charts (in order):
 1. **Time Scale dropdown** — `Total`, `Per Day`, `Per Week`, `Per Month`. Divides all amounts by the number of days/weeks/months in the active date range. Per-Month uses 30.4375 days as the average. Updates chart titles and the total label accordingly.
 2. **Total spending display** — large-font label showing the scaled total (e.g. "Per-Day Spending: $X.XX").
 
-Charts:
+Charts (always shown):
 - **Spending by Category**
 - **Spending by Necessity Level**
+
+Charts (only when category filter is active):
+- **Spending by Subcategory** — pie chart of subcategories within the selected category/categories
+
+### Cumulative Line Plot page
+
+Cumulative spending line charts sourced from `visual_expenditures.csv`, respecting all persistent filters.
+
+Charts (always shown):
+- **Cumulative Spending by Category**
+- **Cumulative Spending by Necessity Level**
+
+Charts (only when category filter is active):
+- **Cumulative Spending by Subcategory**

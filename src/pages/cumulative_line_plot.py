@@ -14,7 +14,7 @@ def load():
     df = pd.read_csv(VISUAL_OUTPUT)
     df["amount"] = pd.to_numeric(df["amount"], errors="coerce")
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    for col in ["category", "necessity_level"]:
+    for col in ["category", "subcategory", "necessity_level"]:
         df[col] = df[col].fillna("")
     return df
 
@@ -44,7 +44,7 @@ if df.empty:
 
 all_dates = df["date"].dt.date.dropna()
 st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
-st.session_state.setdefault("date_end",   all_dates.max() if len(all_dates) else datetime.date.today())
+st.session_state.setdefault("date_end",   datetime.date.today())
 st.session_state.setdefault("filter_categories", [])
 st.session_state.setdefault("filter_necessity", [])
 
@@ -60,21 +60,27 @@ with dcol2:
 st.session_state["date_start"] = date_start
 st.session_state["date_end"] = date_end
 
+if "_w_filter_categories" not in st.session_state:
+    st.session_state["_w_filter_categories"] = st.session_state["filter_categories"]
+if "_w_filter_necessity" not in st.session_state:
+    st.session_state["_w_filter_necessity"] = st.session_state["filter_necessity"]
+
 col1, col2 = st.columns(2)
 with col1:
-    filter_cats = st.multiselect("Category", options=unique_vals(df["category"]), default=st.session_state["filter_categories"])
+    st.multiselect("Category", options=unique_vals(df["category"]), key="_w_filter_categories")
 with col2:
-    filter_nec = st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), default=st.session_state["filter_necessity"])
-st.session_state["filter_categories"] = filter_cats
-st.session_state["filter_necessity"] = filter_nec
+    st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), key="_w_filter_necessity")
+
+st.session_state["filter_categories"] = st.session_state["_w_filter_categories"]
+st.session_state["filter_necessity"] = st.session_state["_w_filter_necessity"]
 
 mask = pd.Series(True, index=df.index)
 mask &= df["date"].dt.date >= date_start
 mask &= df["date"].dt.date <= date_end
-if filter_cats:
-    mask &= df["category"].isin(filter_cats)
-if filter_nec:
-    mask &= df["necessity_level"].isin(filter_nec)
+if st.session_state["filter_categories"]:
+    mask &= df["category"].isin(st.session_state["filter_categories"])
+if st.session_state["filter_necessity"]:
+    mask &= df["necessity_level"].isin(st.session_state["filter_necessity"])
 
 spending = df[mask & (df["amount"] < 0)].copy()
 spending["amount"] = spending["amount"].abs()
@@ -91,3 +97,9 @@ st.plotly_chart(
     cumulative_line(spending, "necessity_level", "Cumulative Spending by Necessity Level", "Unassigned"),
     use_container_width=True,
 )
+
+if st.session_state["filter_categories"]:
+    st.plotly_chart(
+        cumulative_line(spending, "subcategory", "Cumulative Spending by Subcategory", "Uncategorized"),
+        use_container_width=True,
+    )
