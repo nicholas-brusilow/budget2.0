@@ -73,8 +73,14 @@ if st.session_state["filter_categories"]:
 if st.session_state["filter_necessity"]:
     mask &= df["necessity_level"].isin(st.session_state["filter_necessity"])
 
-if st.checkbox("Hide Ignored Transactions", value=True):
-    mask &= ~df["ignore"]
+chk_col1, chk_col2 = st.columns(2)
+with chk_col1:
+    if st.checkbox("Hide Ignored Transactions", value=True):
+        mask &= ~df["ignore"]
+with chk_col2:
+    if st.checkbox("Show Only Uncategorized"):
+        mask &= ~df["ignore"]
+        mask &= (df["category"].str.strip() == "") | (df["necessity_level"].str.strip() == "")
 
 filtered = df[mask].copy()
 

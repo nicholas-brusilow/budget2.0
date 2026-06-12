@@ -72,6 +72,9 @@ if spending.empty:
 spending["category"]      = spending["category"].replace("", "Uncategorized")
 spending["necessity_level"] = spending["necessity_level"].replace("", "Unassigned")
 
+total_spent = spending["amount"].sum()
+st.markdown(f"<p style='font-size:1.4rem;'>Total Money Spent: <strong>${total_spent:,.2f}</strong></p>", unsafe_allow_html=True)
+
 cat_data = spending.groupby("category")["amount"].sum().reset_index()
 fig = px.pie(cat_data, values="amount", names="category", title="Spending by Category", height=700)
 fig.update_traces(textposition="inside", texttemplate="$%{value:,.2f}<br>%{percent:.1%}<br>%{label}")
