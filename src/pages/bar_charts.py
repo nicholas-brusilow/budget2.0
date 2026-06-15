@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from categoricals import DEFAULT_NECESSITY_FILTER
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 VISUAL_OUTPUT = os.path.join(ROOT, "visual_expenditures.csv")
 
@@ -31,7 +33,7 @@ all_dates = df["date"].dt.date.dropna()
 st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
 st.session_state.setdefault("date_end",   datetime.date.today())
 st.session_state.setdefault("filter_categories", [])
-st.session_state.setdefault("filter_necessity", [])
+st.session_state.setdefault("filter_necessity", list(DEFAULT_NECESSITY_FILTER))
 st.session_state.setdefault("bar_time_scale", "Total")
 
 def unique_vals(series):

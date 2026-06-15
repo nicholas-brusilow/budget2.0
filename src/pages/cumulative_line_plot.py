@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from categoricals import DEFAULT_NECESSITY_FILTER
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 VISUAL_OUTPUT = os.path.join(ROOT, "visual_expenditures.csv")
 
@@ -46,7 +48,7 @@ all_dates = df["date"].dt.date.dropna()
 st.session_state.setdefault("date_start", all_dates.min() if len(all_dates) else datetime.date.today())
 st.session_state.setdefault("date_end",   datetime.date.today())
 st.session_state.setdefault("filter_categories", [])
-st.session_state.setdefault("filter_necessity", [])
+st.session_state.setdefault("filter_necessity", list(DEFAULT_NECESSITY_FILTER))
 
 def unique_vals(series):
     return sorted(v for v in series.dropna().unique() if str(v).strip())

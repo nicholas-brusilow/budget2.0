@@ -70,3 +70,8 @@ NECESSITY = [
     "donation",
     "investment"
 ]
+
+# Necessity levels selected by default in the persistent filter (shared across
+# all tabs). Excludes "donation" and "investment" so charts/tables focus on
+# ordinary spending until the user opts those back in.
+DEFAULT_NECESSITY_FILTER = ["basic", "middle", "luxury"]

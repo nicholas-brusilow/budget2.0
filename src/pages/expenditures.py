@@ -8,7 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 OUTPUT = os.path.join(ROOT, "expenditures.csv")
 
 sys.path.insert(0, os.path.join(ROOT, "src"))
-from categoricals import EXPENDITURE_CATEGORIES, ALL_SUBCATEGORIES, NECESSITY
+from categoricals import EXPENDITURE_CATEGORIES, ALL_SUBCATEGORIES, NECESSITY, DEFAULT_NECESSITY_FILTER
 
 EDITABLE_COLS = ["category", "subcategory", "necessity_level", "timescale", "timescale_end", "ignore"]
 
@@ -54,7 +54,7 @@ def unique_vals(series):
     return sorted(v for v in series.dropna().unique() if str(v).strip())
 
 st.session_state.setdefault("filter_categories", [])
-st.session_state.setdefault("filter_necessity", [])
+st.session_state.setdefault("filter_necessity", list(DEFAULT_NECESSITY_FILTER))
 
 # Widget keys are cleared by Streamlit on navigation; restore them from the persistent keys.
 if "_w_filter_categories" not in st.session_state:

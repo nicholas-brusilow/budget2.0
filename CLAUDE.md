@@ -8,11 +8,13 @@ A personal finance Streamlit app for visualizing, sorting, and filtering expendi
 src/
   app.py                  # Streamlit entry point; runs preprocessing once per session
   preprocessing.py        # Ingests raw CSVs → expenditures.csv + visual_expenditures.csv
-  categoricals.py         # Lists: EXPENDITURE_CATEGORIES, ALL_SUBCATEGORIES, NECESSITY
+  categoricals.py         # Lists: EXPENDITURE_CATEGORIES, ALL_SUBCATEGORIES, NECESSITY, DEFAULT_NECESSITY_FILTER
   pages/
-    expenditures.py       # "Expenditures" tab
-    create_transaction.py # "Create Transaction" tab
-    pie_charts.py         # "Pie Charts" tab
+    expenditures.py         # "Expenditures" tab
+    create_transaction.py   # "Create Transaction" tab
+    pie_charts.py           # "Pie Charts" tab
+    bar_charts.py           # "Bar Charts" tab
+    cumulative_line_plot.py # "Cumulative Line Plot" tab
 rawdata/
   alliant_cc/
   alliant_checking/
@@ -74,6 +76,7 @@ Each transaction is spread evenly across its `timescale`→`timescale_end` date 
 - `EXPENDITURE_CATEGORIES` — top-level categories (e.g. `transport`, `groceries`, `eating out`)
 - `ALL_SUBCATEGORIES` — subcategories in `"category:subcategory"` format; always filtered to the selected category before being shown to the user
 - `NECESSITY` — necessity levels: `basic`, `middle`, `luxury`, `donation`, `investment`
+- `DEFAULT_NECESSITY_FILTER` — `["basic", "middle", "luxury"]`; the necessity levels pre-selected in the persistent filter on every page (excludes `donation` and `investment` by default)
 
 ## Streamlit app
 
@@ -81,32 +84,42 @@ Each transaction is spread evenly across its `timescale`→`timescale_end` date 
 
 ### Persistent session state keys
 
-These are set on the Expenditures page and read by all other pages — never hardcode date or filter defaults, always use these keys:
+These are initialized via `setdefault` on every page (whichever loads first wins) and read by all pages — never hardcode date or filter defaults, always use these keys:
 
 | Key | Type | Description |
 |---|---|---|
 | `date_start` | `datetime.date` | Start of the active date filter |
 | `date_end` | `datetime.date` | End of the active date filter |
 | `filter_categories` | `list[str]` | Selected category filter values (persistent) |
-| `filter_necessity` | `list[str]` | Selected necessity level filter values (persistent) |
+| `filter_necessity` | `list[str]` | Selected necessity level filter values (persistent). Defaults to `DEFAULT_NECESSITY_FILTER` — see [Default necessity filter](#default-necessity-filter) |
+
+The Bar Charts page also persists its own `bar_time_scale` key (its Time Scale selection); it is page-local, not cross-page.
 
 #### Filter persistence pattern
 
 Streamlit clears widget-bound keys on page navigation. Date inputs use `value=` + manual assignment (no widget key) so they naturally survive navigation. Category/necessity multiselects use a two-key pattern to get both no-double-click-bug and cross-page persistence:
 
-- `_w_filter_categories` / `_w_filter_necessity` — widget keys (use `key=` on the multiselect); cleared by Streamlit on navigation
+- `_w_filter_categories` / `_w_filter_necessity` — widget keys (use `key=` on the multiselect); cleared by Streamlit on navigation. The Bar Charts page uses its own `_bar_`-prefixed widget keys (`_bar_w_filter_categories` / `_bar_w_filter_necessity`) but reads/writes the same persistent keys
 - `filter_categories` / `filter_necessity` — persistent keys (not widget-bound); survive navigation
 
 On each page, before rendering the multiselect: if the widget key is absent (was cleared), restore it from the persistent key. After rendering: copy the widget key back to the persistent key. All mask logic and conditional rendering reads from the persistent keys.
+
+#### Default necessity filter
+
+`filter_necessity` initializes to `DEFAULT_NECESSITY_FILTER` (`["basic", "middle", "luxury"]`) rather than empty, so `donation` and `investment` are excluded by default on every page. Because the key is shared and persistent, this default propagates across all tabs, and any change the user makes on one tab carries to the others.
+
+The necessity filter is inclusive (`necessity_level.isin(...)`) and the empty list is falsy (filter not applied). Two consequences:
+- The default also hides transactions with a **blank** necessity level, not just `donation`/`investment`.
+- On the Expenditures page, to surface uncategorized rows via "Show Only Uncategorized", first clear the Necessity Level filter (otherwise blank-necessity rows are filtered out before the uncategorized check runs).
 
 ### Expenditures page
 
 Editable table of `expenditures.csv`. Filters (all persistent via session state):
 - Date range (From / To) — `date_start` defaults to earliest date in data; `date_end` defaults to today's date
 - Category multiselect (persistent across tabs)
-- Necessity Level multiselect (persistent across tabs)
+- Necessity Level multiselect (persistent across tabs; defaults to `basic`/`middle`/`luxury`, so `donation`/`investment` are hidden until added)
 - "Hide Ignored Transactions" checkbox (default on)
-- "Show Only Uncategorized" checkbox — shows only non-ignored transactions missing a `category` or `necessity_level`
+- "Show Only Uncategorized" checkbox — shows only non-ignored transactions missing a `category` or `necessity_level`. Because the default necessity filter excludes blank necessity levels, clear the Necessity Level filter to surface all uncategorized transactions (see [Default necessity filter](#default-necessity-filter))
 
 Editable columns: `category` (SelectboxColumn), `subcategory` (SelectboxColumn), `necessity_level` (SelectboxColumn), `ignore` (CheckboxColumn). All other columns are read-only. Changes are saved explicitly via the "Save Changes" button.
 
@@ -128,6 +141,21 @@ Charts (always shown):
 
 Charts (only when category filter is active):
 - **Spending by Subcategory** — pie chart of subcategories within the selected category/categories
+
+### Bar Charts page
+
+Bar charts sourced from `visual_expenditures.csv`, respecting all persistent filters. Same data handling as the Pie Charts page (spending only, shown as positive; blank category/necessity_level → "Uncategorized"/"Unassigned").
+
+Controls above the charts:
+1. **Time Scale dropdown** — same `Total`/`Per Day`/`Per Week`/`Per Month` options as Pie Charts. Unlike Pie Charts, the selection is persisted in the `bar_time_scale` session key.
+2. **Total spending display** — large-font label showing the scaled total.
+
+Charts (always shown), each sorted descending by amount:
+- **Spending by Category**
+- **Spending by Necessity Level**
+
+Charts (only when category filter is active):
+- **Spending by Subcategory**
 
 ### Cumulative Line Plot page
 
