@@ -14,6 +14,7 @@ src/
     create_transaction.py   # "Create Transaction" tab
     pie_charts.py           # "Pie Charts" tab
     bar_charts.py           # "Bar Charts" tab
+    month_over_month.py     # "Month-over-Month" tab
     cumulative_line_plot.py # "Cumulative Line Plot" tab
 rawdata/
   alliant_cc/
@@ -99,7 +100,7 @@ The Bar Charts page also persists its own `bar_time_scale` key (its Time Scale s
 
 Streamlit clears widget-bound keys on page navigation. Date inputs use `value=` + manual assignment (no widget key) so they naturally survive navigation. Category/necessity multiselects use a two-key pattern to get both no-double-click-bug and cross-page persistence:
 
-- `_w_filter_categories` / `_w_filter_necessity` — widget keys (use `key=` on the multiselect); cleared by Streamlit on navigation. The Bar Charts page uses its own `_bar_`-prefixed widget keys (`_bar_w_filter_categories` / `_bar_w_filter_necessity`) but reads/writes the same persistent keys
+- `_w_filter_categories` / `_w_filter_necessity` — widget keys (use `key=` on the multiselect); cleared by Streamlit on navigation. Pages that also have a `selectbox` must use their own prefix to avoid Streamlit's widget tracking misbehaving on navigation: Bar Charts uses `_bar_w_filter_categories` / `_bar_w_filter_necessity`, Pie Charts uses `_pie_w_filter_categories` / `_pie_w_filter_necessity`, Month-over-Month uses `_mom_w_filter_categories` / `_mom_w_filter_necessity`. All read/write the same persistent keys.
 - `filter_categories` / `filter_necessity` — persistent keys (not widget-bound); survive navigation
 
 On each page, before rendering the multiselect: if the widget key is absent (was cleared), restore it from the persistent key. After rendering: copy the widget key back to the persistent key. All mask logic and conditional rendering reads from the persistent keys.
@@ -108,9 +109,7 @@ On each page, before rendering the multiselect: if the widget key is absent (was
 
 `filter_necessity` initializes to `DEFAULT_NECESSITY_FILTER` (`["basic", "middle", "luxury"]`) rather than empty, so `donation` and `investment` are excluded by default on every page. Because the key is shared and persistent, this default propagates across all tabs, and any change the user makes on one tab carries to the others.
 
-The necessity filter is inclusive (`necessity_level.isin(...)`) and the empty list is falsy (filter not applied). Two consequences:
-- The default also hides transactions with a **blank** necessity level, not just `donation`/`investment`.
-- On the Expenditures page, to surface uncategorized rows via "Show Only Uncategorized", first clear the Necessity Level filter (otherwise blank-necessity rows are filtered out before the uncategorized check runs).
+The necessity filter is inclusive (`necessity_level.isin(...)`) and the empty list is falsy (filter not applied). The default also hides transactions with a **blank** necessity level, not just `donation`/`investment`. Checking "Show Only Uncategorized" on the Expenditures page automatically clears both `filter_categories` and `filter_necessity` (via an `on_change` callback) so blank-necessity rows are never pre-filtered away.
 
 ### Expenditures page
 
@@ -119,7 +118,7 @@ Editable table of `expenditures.csv`. Filters (all persistent via session state)
 - Category multiselect (persistent across tabs)
 - Necessity Level multiselect (persistent across tabs; defaults to `basic`/`middle`/`luxury`, so `donation`/`investment` are hidden until added)
 - "Hide Ignored Transactions" checkbox (default on)
-- "Show Only Uncategorized" checkbox — shows only non-ignored transactions missing a `category` or `necessity_level`. Because the default necessity filter excludes blank necessity levels, clear the Necessity Level filter to surface all uncategorized transactions (see [Default necessity filter](#default-necessity-filter))
+- "Show Only Uncategorized" checkbox (session key `show_uncategorized`) — shows only non-ignored transactions missing a `category` or `necessity_level`. Checking it automatically clears `filter_categories` and `filter_necessity` via `on_change`, so no manual filter-clearing is needed (see [Default necessity filter](#default-necessity-filter))
 
 Editable columns: `category` (SelectboxColumn), `subcategory` (SelectboxColumn), `necessity_level` (SelectboxColumn), `ignore` (CheckboxColumn). All other columns are read-only. Changes are saved explicitly via the "Save Changes" button.
 
@@ -156,6 +155,19 @@ Charts (always shown), each sorted descending by amount:
 
 Charts (only when category filter is active):
 - **Spending by Subcategory**
+
+### Month-over-Month page
+
+Bar chart comparison of complete months within the selected date range, sourced from `visual_expenditures.csv`, respecting all persistent filters. Only spending (negative amounts) is shown, converted to positive.
+
+A month is **complete** if its first day is ≥ `date_start` and its last day is ≤ `date_end`. For example, a range starting 2025-12-21 begins at January 2026, not December 2025. Uses `_mom_w_filter_categories` / `_mom_w_filter_necessity` widget keys (same two-key persistence pattern as other pages).
+
+Controls:
+- **Amount Per Day checkbox** — divides each bar's amount by the number of days in that specific month (28/29/30/31), enabling spending-intensity comparison across months of different lengths. The summary label switches from "Total Spending" to "Avg Daily Spending" (total ÷ total days across all complete months) when active.
+
+Charts:
+- **No category filter active**: one bar per month showing total spending. Zero-filled for complete months with no data.
+- **Category filter active**: grouped side-by-side bars (`barmode="group"`) with one bar per selected category per month.
 
 ### Cumulative Line Plot page
 

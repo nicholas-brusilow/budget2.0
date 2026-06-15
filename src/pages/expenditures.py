@@ -55,6 +55,14 @@ def unique_vals(series):
 
 st.session_state.setdefault("filter_categories", [])
 st.session_state.setdefault("filter_necessity", list(DEFAULT_NECESSITY_FILTER))
+st.session_state.setdefault("show_uncategorized", False)
+
+def on_uncategorized_change():
+    if st.session_state["show_uncategorized"]:
+        st.session_state["filter_categories"] = []
+        st.session_state["filter_necessity"] = []
+        st.session_state.pop("_w_filter_categories", None)
+        st.session_state.pop("_w_filter_necessity", None)
 
 # Widget keys are cleared by Streamlit on navigation; restore them from the persistent keys.
 if "_w_filter_categories" not in st.session_state:
@@ -85,7 +93,7 @@ with chk_col1:
     if st.checkbox("Hide Ignored Transactions", value=True):
         mask &= ~df["ignore"]
 with chk_col2:
-    if st.checkbox("Show Only Uncategorized"):
+    if st.checkbox("Show Only Uncategorized", key="show_uncategorized", on_change=on_uncategorized_change):
         mask &= ~df["ignore"]
         mask &= (df["category"].str.strip() == "") | (df["necessity_level"].str.strip() == "")
 

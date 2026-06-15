@@ -47,19 +47,19 @@ with dcol2:
 st.session_state["date_start"] = date_start
 st.session_state["date_end"] = date_end
 
-if "_w_filter_categories" not in st.session_state:
-    st.session_state["_w_filter_categories"] = st.session_state["filter_categories"]
-if "_w_filter_necessity" not in st.session_state:
-    st.session_state["_w_filter_necessity"] = st.session_state["filter_necessity"]
+if "_pie_w_filter_categories" not in st.session_state:
+    st.session_state["_pie_w_filter_categories"] = st.session_state["filter_categories"]
+if "_pie_w_filter_necessity" not in st.session_state:
+    st.session_state["_pie_w_filter_necessity"] = st.session_state["filter_necessity"]
 
 col1, col2 = st.columns(2)
 with col1:
-    st.multiselect("Category", options=unique_vals(df["category"]), key="_w_filter_categories")
+    st.multiselect("Category", options=unique_vals(df["category"]), key="_pie_w_filter_categories")
 with col2:
-    st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), key="_w_filter_necessity")
+    st.multiselect("Necessity Level", options=unique_vals(df["necessity_level"]), key="_pie_w_filter_necessity")
 
-st.session_state["filter_categories"] = st.session_state["_w_filter_categories"]
-st.session_state["filter_necessity"] = st.session_state["_w_filter_necessity"]
+st.session_state["filter_categories"] = st.session_state["_pie_w_filter_categories"]
+st.session_state["filter_necessity"] = st.session_state["_pie_w_filter_necessity"]
 
 mask = pd.Series(True, index=df.index)
 mask &= df["date"].dt.date >= date_start
@@ -70,7 +70,7 @@ if st.session_state["filter_necessity"]:
     mask &= df["necessity_level"].isin(st.session_state["filter_necessity"])
 
 SCALE_OPTIONS = ["Total", "Per Day", "Per Week", "Per Month"]
-scale = st.selectbox("Time Scale", options=SCALE_OPTIONS)
+scale = st.selectbox("Time Scale", options=SCALE_OPTIONS, key="pie_time_scale")
 
 # Only spending (money out = negative); display as positive values
 spending = df[mask & (df["amount"] < 0)].copy()
