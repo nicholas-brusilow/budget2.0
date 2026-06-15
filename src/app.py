@@ -20,6 +20,7 @@ pg = st.navigation([
     st.Page("pages/create_transaction.py", title="Create Transaction", icon=":material/add_circle:"),
     st.Page("pages/pie_charts.py", title="Pie Charts", icon=":material/pie_chart:"),
     st.Page("pages/bar_charts.py", title="Bar Charts", icon=":material/bar_chart:"),
+    st.Page("pages/month_over_month.py", title="Month-over-Month", icon=":material/calendar_month:"),
     st.Page("pages/cumulative_line_plot.py", title="Cumulative Line Plot", icon=":material/show_chart:"),
 ])
 pg.run()
